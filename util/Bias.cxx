@@ -9,20 +9,16 @@
 #include "TCanvas.h"
 #include <string>
 #include <sstream>
+#include "PlotFunctions/DrawPlot.h"
 
 using namespace std;
 
 int main()
 {
-
   //Open file, get tree and branches
   TFile *f = TFile::Open ("/sps/atlas/c/cgoudet/Calibration/Bias/Data/TreeToyTemplates_14093222.root");
 
-  if (f == 0) 
-    { // print an error message if the file cannot be opened
-      cout<<"Error: cannot open root file\n"<<endl;
-      return 0;
-    }
+  if (f == 0) { cout<<"Error: cannot open root file\n"<<endl; return 0;}
 
   //Get the tree
   TTree *t = (TTree*) f->Get("ConfigurationsCTree");
@@ -38,17 +34,6 @@ int main()
   t->SetBranchAddress("errSigma", &errSigma);
   t->SetBranchAddress("inputC", &inputC);
   t->SetBranchAddress("dataRMS", &dataRMS);
-
-  /*TBranch *br;
-  TIter next( t->GetListOfBranches() );
-  string brName='brName';
-  double ptr;
-  while ( (br = (TBranch *) next()) )
-    {
-      brName= br->GetName();
-      t->SetBranchAddress(brName, &ptr);
-      //cout<<ptr<<endl;
-      }*/
 
   double bias;
   int  nEff;
@@ -97,6 +82,7 @@ int main()
 	  jSs[j]>>jStr[j];
 	  jSs[j].str("");
 	  if (h->GetEntries() == 0) continue;
+	  DrawPlot( {h}, "dum", {"legend=text"} );
 	  TCanvas *c= new TCanvas();
 	  h->SetMarkerStyle(2);
 	  h->Draw("P");
