@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
       for (unsigned int j=0; j<=i; j++)
 	{  
 	  iSs[i]<<i;
-	  iSs[i]>>iStr[i]
+	  iSs[i]>>iStr[i];
 	  jSs[j]<<j;
 	  jSs[j]>>jStr[j];
 	  if (hist[i][j]->GetEntries() == 0) continue;

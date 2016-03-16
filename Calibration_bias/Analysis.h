@@ -8,7 +8,7 @@
 class Analysis
 {
 
-public:
+ public:
   Analysis();
   ~Analysis();
   double GetMeanForConf(TH1D* h, unsigned int stat, double rms, double input);
