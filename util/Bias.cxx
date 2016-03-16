@@ -12,6 +12,7 @@
 #include <sstream>
 #include "Calibration_bias/Stats.h"
 #include "PlotFunctions/DrawPlot.h"
+#include "PlotFunctions/SideFunctionsTpp.h"
 
 using namespace std;
 
@@ -28,7 +29,7 @@ int main(int argc, char *argv[])
     {
       for (unsigned int j=0; j<nBinUp; j++)
 	{
-	  sprintf(histName, "hBiasConf_%d%d",i,j);
+	  sprintf(histName, "hBiasConf_%d_%d",i,j);
 	  arHisto[i][j]= new TH1D(histName, "", 100, -0.05, 0.05);
 	}
     }
@@ -46,7 +47,7 @@ int main(int argc, char *argv[])
 
   //Open file, get tree and branches
  
-  int  nEff[100][100];
+  int  nEff[100][100]={{0}};
   double xMin[100][100];
   double xMax[100][100];
   unsigned int statTreeVar[100][100];
@@ -74,7 +75,7 @@ int main(int argc, char *argv[])
       t->SetBranchAddress("dataRMS", &dataRMS);
 
       double bias=0.;
-      nEff[100][100]=0;
+      //nEff[100][100]=0;
       xMin[100][100]=10.;
       xMax[100][100]=-10.;
       statTreeVar[100][100]=0;
@@ -105,7 +106,7 @@ int main(int argc, char *argv[])
   stringstream jSs[10];
   string iStr[10];
   string jStr[10];
-  string nameHisto;
+  string namePlot;
   
   vector <string> vecOptions;//Options to draw the histograms (cf DrawPlot.cxx)
   vecOptions.push_back("yTitle=#Events");
@@ -125,14 +126,14 @@ int main(int argc, char *argv[])
 	  jSs[j].str("");
 	  if (arHisto[i][j]->GetEntries() == 0) continue;
 	  arHisto[i][j]->GetXaxis()->SetRangeUser(xMin[i][j], xMax[i][j]);
-	  nameHisto = "/sps/atlas/a/aguerguichon/Calibration/Bias/Plots/nBins"+nBinUpStr+"/biasConf_" + iStr[i] +jStr[j];
-	  DrawPlot( {arHisto[i][j]}, nameHisto,{vecOptions});
+	  namePlot = "/sps/atlas/a/aguerguichon/Calibration/Bias/Plots/nBins"+nBinUpStr+"/biasConf_" + iStr[i]+"_" +jStr[j];
+	  DrawPlot( {arHisto[i][j]}, namePlot,{vecOptions});
 	  
 	  //Write stats.txt
 	  double hRMS = arHisto[i][j]->GetRMS();
 	  double hMean = stats.GetMeanForConf(arHisto[i][j], statTreeVar[i][j], hRMS, inputCVar[i][j]);
 	  double hMeanErr = hRMS/sqrt(nEff[i][j]);
-	  outputFile <<iStr[i]<<jStr[j]<<"\t"<<hMean<<"\t"<<hRMS<<"\t"<< hMeanErr<<"\n";
+	  outputFile <<iStr[i]<<"_"<<jStr[j]<<"\t"<<hMean<<"\t"<<hRMS<<"\t"<< hMeanErr<<"\n";
 	}
     }
 
