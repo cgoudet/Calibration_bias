@@ -17,7 +17,8 @@
 #include "TString.h"
 
 #include "RooDataSet.h"
-#include "RooGaussian.h"
+#include "RooRealVar.h"
+#include "RooArgSet.h"
 
 #include "Calibration_bias/BiasAnalysis.h"
 #include "PlotFunctions/DrawPlot.h"
@@ -26,6 +27,7 @@
 #include "PlotFunctions/MapBranches.h"
 
 using namespace std;
+using namespace RooFit;
 namespace po = boost::program_options;
 
 //====================================================
@@ -36,9 +38,13 @@ BiasAnalysis::BiasAnalysis(string configFileName)
   configOptions.add_options()
     ("help", "Display this help message")
     ("variablesBias", po::value<vector<string>>(&m_variablesBias)->multitoken(),"Variables to study bias")
-    /*accepted variables: 
+    /*accepted variables for ConfugurationsCTree: 
        - double: sigma, errSigma, inputC, dataRMS, nOptim;
        - unsigned int: iConf, jConf, statConf, statTree, indepDistorded, indepTemplates, runNumber, nBins, bootstrap, fitMethod;
+    accepted variables for scalesTree:
+    - double: sigma, errSigma, inputC, dataRMS, nOptim;
+    - unsigned int: statTree, indepDistorded, indepTemplates, runNumber, nBins, bootstrap, fitMethod, inversionMethod;
+
     */
     ("variablesStats", po::value<vector<unsigned int>>(&m_variablesStats)->multitoken(),"Variables for the csv file")
     /*0: mean, rms, errMean
@@ -49,6 +55,9 @@ BiasAnalysis::BiasAnalysis(string configFileName)
       2: get mean given by the Gaussian fit of the histogram
       3: RooFit gauss
     */
+    ("selectTree", po::value<string>(&m_inTreeName), "")
+    /*ConfigurationsCTree or scalesTree
+     */
     ;
     
   po::variables_map vm;
@@ -68,30 +77,29 @@ BiasAnalysis::~BiasAnalysis(){}
 void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 {
   map <string, unsigned int> mapUInt;
-  map <string, double> mapDouble;
-  map <string, double> mapMean;
+  map <string, double> mapDouble, mapMean, mapXMin, mapXMax;
 
   TTree *inTree;
 
   unsigned int nEntries;
-  double bias, xMin, xMax;
+  double bias;
 
   string histName;
   TString value;
   
+
+  //1st loop over files: get min & max of each histogram, fill maps needed to compute mean an rms
   for (unsigned int iFile=0; iFile <dataFiles.size(); iFile++)
     { 
       TFile *f= TFile::Open(dataFiles[iFile].c_str());
       if (f == 0) { cout<<"Error: cannot open "<<dataFiles[iFile]<<" file\n"<<endl; return;}
 
-      inTree = (TTree*) f->Get("ConfigurationsCTree");  
+      inTree = (TTree*) f->Get(m_inTreeName.c_str());  
       
       MapBranches mapBranches; 
       mapBranches.LinkTreeBranches(inTree);
-      //cout<<dataFiles[iFile]<<endl;
       nEntries= inTree->GetEntries();
-      
-      //1st loop over entries: get min & max of each histogram, fill maps needed to compute mean an rms
+    
       for (unsigned int iEntry=0; iEntry<nEntries; iEntry++)
       	{
       	  inTree->GetEntry(iEntry);
@@ -100,63 +108,81 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	  histName ="";
 	  bias = mapDouble.at("sigma")-mapDouble.at("inputC");
 	  
+	  if (mapUInt.at("nBins")!=6) continue;
+
 	  for (unsigned int iVar =0; iVar < m_variablesBias.size(); iVar++)
       	    {
 	      if (mapUInt.count(m_variablesBias[iVar])>0) value = TString::Format("%d",mapUInt.find(m_variablesBias[iVar])->second);
 	      if (mapDouble.count(m_variablesBias[iVar])>0) value = TString::Format("%d",(int) floor ( (mapDouble.find(m_variablesBias[iVar])->second)*1e6) );
-	      
+      
 	      if (iVar == m_variablesBias.size()-1) 
 		{
 		  histName+= m_variablesBias[iVar]+"_"+value;
 		  if (m_mapNEff.count(histName) == 0)
 		    {
-		      m_histMinMax.resize(extents[m_nHist+1][2]);
-		      m_histMinMax[m_nHist][0]=bias;
-		      m_histMinMax[m_nHist][1]=bias;
-
+		      mapXMin.insert(pair<string, double>(histName, bias));
+		      mapXMax.insert(pair<string, double>(histName, bias));
+		      
 		      m_mapSumX.insert(pair<string, double>(histName, bias));
-		     // m_mapSumXSquare.insert(pair<string, double>(histName, bias*bias));
+		      // m_mapSumXSquare.insert(pair<string, double>(histName, bias*bias));
 		      m_mapNEff.insert(pair<string, unsigned int>(histName, 1));
 		      m_mapHistPosition.insert(pair<string, unsigned int>(histName, m_nHist));
 		      m_nHist++;
 		    }
 
 		  if (m_mapNEff.count(histName) > 0)
-		    {
-		      if(bias<m_histMinMax[m_mapHistPosition.at(histName)][0]) m_histMinMax[m_mapHistPosition.at(histName)][0]=bias;
-		      if(bias>m_histMinMax[m_mapHistPosition.at(histName)][1]) m_histMinMax[m_mapHistPosition.at(histName)][1]=bias;
-
+		    {		     	      
+		      if(bias<mapXMin[histName]) mapXMin[histName]=bias;
+		      if(bias>mapXMax[histName]) mapXMax[histName]=bias;      
 		      m_mapSumX[histName]+=bias;
 		      //m_mapSumXSquare[histName]+=bias*bias;
 		      m_mapNEff[histName]+=1;
 		    }
-
 		}
 	      histName += m_variablesBias[iVar]+"_"+value+"_";
 	      
-	    }
+	    }//end iVar (1st loop)
 
-	}
+	}//end iEntry (1st loop)
 
-      //2nd loop over entries: fill m_mapHist
+    }//end iFile
+  
+  delete inTree;
+
+  //2nd loop over files: fill m_mapHist     
+  for (unsigned int iFile=0; iFile <dataFiles.size(); iFile++)
+    { 
+      TFile *f= TFile::Open(dataFiles[iFile].c_str());
+      if (f == 0) { cout<<"Error: cannot open "<<dataFiles[iFile]<<" file\n"<<endl; return;}
+
+      inTree = (TTree*) f->Get(m_inTreeName.c_str());  
+      
+      MapBranches mapBranches; 
+      mapBranches.LinkTreeBranches(inTree);
+      nEntries= inTree->GetEntries();
+
       for (unsigned int iEntry=0; iEntry<nEntries; iEntry++)
-      	{
-      	  inTree->GetEntry(iEntry);
+	{
+	  inTree->GetEntry(iEntry);
 	  mapDouble=mapBranches.GetMapDouble();
-      	  mapUInt=mapBranches.GetMapUnsigned();
-      	  histName ="";
+	  mapUInt=mapBranches.GetMapUnsigned();
+	  histName ="";
 	  bias = mapDouble.at("sigma")-mapDouble.at("inputC");
-      	  for (unsigned int iVar =0; iVar < m_variablesBias.size(); iVar++)
-      	    {
-      	      if (mapUInt.count(m_variablesBias[iVar])>0) value = TString::Format("%d",mapUInt.find(m_variablesBias[iVar])->second);
-      	      if (mapDouble.count(m_variablesBias[iVar])>0) value = TString::Format("%d",(int) floor ( (mapDouble.find(m_variablesBias[iVar])->second)*1e6) );
+
+	  if (mapUInt.at("nBins")!=6) continue;
+
+	  for (unsigned int iVar =0; iVar < m_variablesBias.size(); iVar++)
+	    {
+	      if (mapUInt.count(m_variablesBias[iVar])>0) value = TString::Format("%d",mapUInt.find(m_variablesBias[iVar])->second);
+	      if (mapDouble.count(m_variablesBias[iVar])>0) value = TString::Format("%d",(int) floor ( (mapDouble.find(m_variablesBias[iVar])->second)*1e6) );
 	      
-      	      if (iVar == m_variablesBias.size()-1) 
-      		{
-      		  histName+= m_variablesBias[iVar]+"_"+value; 
+	      if (iVar == m_variablesBias.size()-1) 
+		{
+		  histName+= m_variablesBias[iVar]+"_"+value; 
 		  if(m_mapHist.count(histName)==0)
 		    {
-		      m_mapHist.insert(pair<string, TH1D*> (histName, new TH1D(histName.c_str(), "", 100, m_histMinMax[m_mapHistPosition.at(histName)][0], m_histMinMax[m_mapHistPosition.at(histName)][1])));
+		      m_mapHist.insert(pair<string, TH1D*> (histName, new TH1D(histName.c_str(), "", 100, mapXMin[histName], mapXMax[histName])));
+
 		      m_mapHist[histName]->Fill(bias);
 		      
 		      mapMean.insert(pair <string, double> (histName, m_mapSumX[histName]/m_mapNEff[histName]));
@@ -171,12 +197,12 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 
 		}
 
-      	      histName += m_variablesBias[iVar]+"_"+value+"_";
+	      histName += m_variablesBias[iVar]+"_"+value+"_";
 	      
-      	    }
-      	}
-
-    }
+	    }//end iVar (2nd loop)
+	}//end iEntry (2nd loop)
+      
+    }//end iFile
   
   delete inTree;
   //cout <<"End of selection"<<endl;
@@ -201,6 +227,8 @@ void BiasAnalysis::MeasureBias(string outFileName)
 
   ofstream outputFile(outFileName, ios::out);
   if (outputFile == 0) {cout<<"Error while opening outputFile"<<endl; return ;}
+
+  outputFile <<"Histogram"<<","<<"Mean"<<","<<"RMS"<<","<<"Error mean"<<endl;
   
 
   map <string, unsigned int>::iterator it=m_mapHistPosition.begin();
@@ -239,8 +267,11 @@ void BiasAnalysis::MeasureBias(string outFileName)
 	      {
 		nBins = m_mapHist[histName]->GetNbinsX();
 		
-		xMin = m_mapHist[histName]->GetXaxis()->GetBinCenter(1);
-		xMax = m_mapHist[histName]->GetXaxis()->GetBinCenter(nBins-2);
+		xMin = m_mapHist[histName]->GetXaxis()->GetBinCenter(2);
+		xMax = m_mapHist[histName]->GetXaxis()->GetBinCenter(nBins-1);
+		//cout<<xMax<<endl;
+
+		//cout <<xMin <<"xMax last bin"<< xMax<<endl;
 		TF1 *f1 = new TF1("f1", "gaus", xMin, xMax);
 		m_mapHist[histName]->Fit("f1","R");
 		if (m_variablesStats[iVar]== 0)
@@ -249,21 +280,21 @@ void BiasAnalysis::MeasureBias(string outFileName)
 		    rms = m_mapHist[histName]->GetFunction("f1")->GetParameter(2);
 		    errMean = m_mapHist[histName]->GetFunction("f1")->GetParError(1); 
 		  }
-
+		delete f1; f1=0;
 		break;
 	      }
-	    }
+	    }//end switch
 
 	  m_histStats[iHist][0]=mean;
 	  m_histStats[iHist][1]=rms;
 	  m_histStats[iHist][2]=errMean;
 	  
-  	}
+  	}//end iVar
       
 	  outputFile << histName <<","<<mean<<","<<rms<<","<<errMean<<endl;
       
       it++;
-    }
+    }//end iteration over histograms (while loop)
 
   cout<<"End of measure"<<endl;
   return;
@@ -276,7 +307,7 @@ void BiasAnalysis::MeasureBias(string outFileName)
 //==================================================
 //Draw plots and save them into a pdf file
 
-void BiasAnalysis::MakePlots(string latexFileName, vector <string> vectOptDraw)
+void BiasAnalysis::MakePlots(string latexFileName)
 {
   //Prepare latex file to store plots 
   fstream stream;
@@ -284,17 +315,43 @@ void BiasAnalysis::MakePlots(string latexFileName, vector <string> vectOptDraw)
   WriteLatexHeader( stream, "Test", "Antinea Guerguichon" );
 
   //Draw plots
-  vector <TH1*> vectHist;
   vector <string> vectHistNames;
- 
+  vector <string> vectStatNames;
+  vectStatNames.push_back("Mean");
+  vectStatNames.push_back("RMS");
+  vectStatNames.push_back("Error mean");
+
+  vector <string> vectOptDraw;//Options to draw the histograms (cf DrawPlot.cxx
+
+  string histName;
+  unsigned int iHist=0;
+  TString statVal, statPos;
+  string statLatex;
+
   map <string, TH1D*>::iterator it=m_mapHist.begin();
   while(it != m_mapHist.end())
     {
-      vectHistNames.push_back(it->first);
-      vectHist.push_back(it->second);
+      histName = it->first;
+      vectHistNames.push_back(histName);
+
+      for (unsigned int i=0; i<m_variablesStats.size()+2; i++)
+      	{
+      	  statVal= TString::Format("%f", m_histStats[iHist][i]);
+	  statLatex= "latex="+ vectStatNames[i]+ ": " +statVal;
+      	  vectOptDraw.push_back(statLatex.c_str());
+	  statPos= TString::Format("%f", 0.9-i*0.05);
+	  statLatex= "latexOpt= 0.7 "+ statPos;
+	  vectOptDraw.push_back(statLatex.c_str());
+      	}
       
-      DrawPlot({it->second}, it->first, {vectOptDraw});
-     
+      vectOptDraw.push_back("yTitle=#Events");
+      vectOptDraw.push_back("xTitle=C^{meas}-C^{input}");
+                  
+      DrawPlot({it->second}, histName, {vectOptDraw});
+      
+      vectOptDraw.clear();
+      
+      iHist++;
       it++;
     }
 
@@ -307,6 +364,9 @@ void BiasAnalysis::MakePlots(string latexFileName, vector <string> vectOptDraw)
   system( commandLine.c_str() );
   system( commandLine.c_str() );
   system( commandLine.c_str() );
+
+  // commandLine = "rm " + m_variablesBias[0]+ "*";
+  // system( commandLine.c_str() );
 
   cout<<"Plots drawn and stored into a pdf file"<<endl;
   return;

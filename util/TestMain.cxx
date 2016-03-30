@@ -50,12 +50,7 @@ int main(int argc, char *argv[])
   BA.SelectVariables(dataFiles);
   BA.MeasureBias("/sps/atlas/a/aguerguichon/Calibration/Bias/Stats/Stats_2.csv");
 
-
-  vector <string> vectOptDraw;//Options to draw the histograms (cf DrawPlot.cxx)
-  vectOptDraw.push_back("yTitle=#Events");
-  vectOptDraw.push_back("xTitle=C^{meas}-C^{input}");
-
-  BA.MakePlots("latex_2.tex", vectOptDraw);
+  BA.MakePlots("latex_2.tex");
 
   //================
   //End of program

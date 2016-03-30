@@ -15,7 +15,7 @@ public:
   ~BiasAnalysis();
   void SelectVariables(std::vector <std::string> dataFiles);
   void MeasureBias(std::string outFileName);
-  void MakePlots(std::string latexFileName, std::vector <std::string> vectOptDraw);
+  void MakePlots(std::string latexFileName);
 
 
  private:
@@ -28,7 +28,9 @@ public:
   std::map <std::string, double> m_mapSumXM;
   std::map <std::string, unsigned int> m_mapNEff;
 
+  std::string m_inTreeName;
 
+  
   typedef boost::multi_array<double, 2> maDouble;
   maDouble m_histStats;
   maDouble m_histMinMax;
