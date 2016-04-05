@@ -1,0 +1,17 @@
+inputType=0 
+rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/RootFiles/BiasConfFit.root
+objName=inputC_7000_statTree_1000000_indepTemplates_1_indepDistorded_1_bootstrap_1_iConf_0_jConf_0
+legend= 1M, Mean=-0.000142147, RMS=0.00179337
+rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/RootFiles/BiasConfFit.root
+objName=inputC_7000_statTree_100000_indepTemplates_1_indepDistorded_1_bootstrap_1_iConf_0_jConf_0
+legend= 100k, Mean=0.00205149, RMS=0.00346467
+rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/RootFiles/BiasConfFit.root
+objName=inputC_7000_statTree_2774685_indepTemplates_1_indepDistorded_1_bootstrap_1_iConf_0_jConf_0
+legend= 2.7M, Mean=-0.000139338, RMS=0.000999184
+legendPos= 0.45 0.9 
+normalize=1 
+latex=Configuration (0, 0)
+latexOpt= 0.15 0.85 
+xTitle=c^{meas}-c^{input} 
+yTitle=Number of events 
+plotDirectory=/sps/atlas/a/aguerguichon/Calibration/Bias/Plots/ 

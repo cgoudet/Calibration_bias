@@ -1,0 +1,12 @@
+variablesBias=inputC
+variablesBias=statTree
+variablesBias=indepTemplates
+variablesBias=indepDistorded
+variablesBias=bootstrap
+variablesBias=iBin
+
+selectTree= scalesTree
+
+variablesStats=0
+
+methodStats=2

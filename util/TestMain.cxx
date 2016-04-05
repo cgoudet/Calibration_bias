@@ -44,16 +44,20 @@ int main(int argc, char *argv[])
 
   //================
 
-  BiasAnalysis BA("Calibration_bias/ConfigFile/Bias.boost");
+  BiasAnalysis BA("Calibration_bias/ConfigFile/BiasConf.boost");
 
+  string path= "/sps/atlas/a/aguerguichon/Calibration/Bias/";
 
   BA.SelectVariables(dataFiles);
-  BA.MeasureBias("/sps/atlas/a/aguerguichon/Calibration/Bias/Stats/Stats_2.csv");
+  BA.MeasureBias(path+"Stats/BiasConfFit.csv", path+"RootFiles/BiasConfFit.root");
 
-  BA.MakePlots("latex_2.tex");
+  path= "/sps/atlas/a/aguerguichon/Calibration/Bias/Plots/";
+  
+  BA.MakePlots(path, "BiasConfFit.tex");
 
+  
   //================
   //End of program
   cout <<"End of programm"<<endl;
-  return 0;
-}
+  return 0;}
+
