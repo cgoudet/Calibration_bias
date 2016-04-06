@@ -15,22 +15,8 @@ reader= csv.reader(statFile)
 for iBin in range(0, 6):
     configFile = open("CompareStatBin_"+str(iBin)+".boost", "w") 
     configFile.write("inputType=0 \n")
-    for row in reader:
-        objName = "inputC_7000_statTree_100000_indepTemplates_1_indepDistorded_1_bootstrap_1_iBin_" +str(iBin)
-        if openedFile.Get(objName):
-            if row[0]==objName:
-                configFile.write( rootFileName )
-                configFile.write( "objName="+objName+"\n" )
-                configFile.write( "legend= 100k, Mean="+str(row[9])+", RMS="+row[10]+"\n" )
-                    
-        objName = "inputC_7000_statTree_1000000_indepTemplates_1_indepDistorded_1_bootstrap_1_iBin_" +str(iBin)
-        if openedFile.Get(objName):
-            if row[0]==objName:
-                configFile.write( rootFileName )
-                configFile.write( "objName="+objName+"\n" )
-                configFile.write( "legend= 1M, Mean="+str(row[9])+", RMS="+row[10]+"\n" )            
-                
-        objName = "inputC_7000_statTree_2774685_indepTemplates_1_indepDistorded_1_bootstrap_1_iBin_" +str(iBin)
+    for row in reader:                
+        objName = "inputC_7000_statTree_2774685_indepTemplates_0_indepDistorded_1_bootstrap_0_iBin_" +str(iBin)
         if openedFile.Get(objName):
             if row[0]==objName:
                 configFile.write( rootFileName )

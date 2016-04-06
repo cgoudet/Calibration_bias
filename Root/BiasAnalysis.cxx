@@ -312,29 +312,27 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
 {
   m_histStats.resize(extents[m_nHist][m_variablesStats.size()+2]);
   unsigned int iHist=0;
-  unsigned int nBins;
+  unsigned int nBins, skip;
   double mean=0.;
   double errMean=0.;
   double rms=0; 
   double xMin=0.;
   double xMax=0.;
   string histName;
+  char *token;
 
   TFile *outRootFile = new TFile(outRootFileName.c_str(), "RECREATE"); 
 
   ofstream outputFile(outFileName, ios::out);
   if (outputFile == 0) {cout<<"Error while opening outputFile"<<endl; return ;}
-
-  outputFile <<"Histogram"<<","<<"Mean"<<","<<"RMS"<<","<<"Error mean"<<endl;
-  
+ 
 
   map <string, unsigned int>::iterator it=m_mapHistPosition.begin();
   while(it != m_mapHistPosition.end())
     {
       histName= it->first;
       iHist= it->second;
-      cout<<"Integral "<<m_mapHist[histName]->Integral()<<endl;
-      cout <<"GetEntries "<< m_mapHist[histName]->GetEntries()<<endl;
+   
       for (unsigned int iVar=0; iVar<m_variablesStats.size(); iVar++)
   	{
 	  switch (m_methodStats)
@@ -366,6 +364,7 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
 
 	    case 2://get from gaussian fit
 	      {
+		cout << histName<<endl;
 		nBins = m_mapHist[histName]->GetNbinsX();
 		
 		xMin = m_mapHist[histName]->GetXaxis()->GetBinCenter(2);
@@ -414,10 +413,33 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
 	  m_histStats[iHist][2]=errMean;
 	  //m_histStats[iHist][3]=m_mapNEff[histName];
   	}//end iVar
+
+      //writing the cvs file
+      if (iHist==0) 
+	{
+	  outputFile<<"Histogram name"<<","<<"Histogram index"<<","<<"Number of entries"<<",";
+	  for (unsigned int iVarBias=0; iVarBias<m_variablesBias.size(); iVarBias++)
+	    {
+	      outputFile<<m_variablesBias[iVarBias]<<",";
+	    }
+	  outputFile<<"Mean"<<","<<"RMS"<<","<<"Error mean"<<"\n";
+	}
+
+      outputFile<<histName<<","<<iHist<<","<<m_mapNEff[histName]<<",";
+      token = strtok((char*)histName.c_str(), "_");
+      skip=1;
+      while(token !=NULL)
+      	{
+	  if (skip>m_nHist) break;
+      	  if (skip%2==0) outputFile<<token<<",";
+	  skip++;
+	  token=strtok(NULL, "_");
+      	}
+           
+      outputFile<<mean<<","<<rms<<","<<errMean<<"\n";
       
-	  outputFile << histName <<","<<mean<<","<<rms<<","<<errMean<<"\n";
-	  cout<<iHist<<endl;
-	  it++;
+      //next histogram
+      it++;
     }//end iteration over histograms (while loop)
 
   cout<<"End of measure"<<endl;
@@ -457,12 +479,11 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
   TString statVal, statPos;
   string legLatex;
 
-  //map <string, TH1D*>::iterator it=m_mapHist.begin();
   for (unsigned int i=0; i<m_histNames.size(); i++)
     {
       histName = m_histNames[i];
       m_histNames[i]=path+m_histNames[i];
-      
+
       for (unsigned int i=0; i<m_variablesStats.size()+2; i++)
       	{
       	  statVal= TString::Format("%f", m_histStats[iHist][i]);
@@ -479,12 +500,7 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
       vectOptDraw.push_back("latexOpt= 0.1 0.9");
       vectOptDraw.push_back("extendUp= 0.4");
       
-      if (m_methodStats == 3)
-	{ 
-	  
-	  DrawPlot(m_mapBias[histName], {m_mapDataSet[histName], m_mapGauss[histName]}, path+histName,{vectOptDraw} );
-	}
-
+      if (m_methodStats == 3)  DrawPlot(m_mapBias[histName], {m_mapDataSet[histName], m_mapGauss[histName]}, path+histName,{vectOptDraw} );
       
       switch (m_checkDistri)
 	{
@@ -523,19 +539,16 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
 
   if (m_checkDistri ==1) stream << "\\indent Check for errSigma distribution with bootstrap=0, indepTemplates=0, indepDistorded=1 \\newline"<<endl;
   WriteLatexMinipage( stream, m_histNames, 2, true );
-  //vectHistNames.clear();
   stream << "\\end{document}" << endl;
-  //string commandLine = "pdflatex " + path+latexFileName;
   string commandLine = "pdflatex  -interaction=batchmode " + path+latexFileName;
   system( commandLine.c_str() );
   system( commandLine.c_str() );
   system( commandLine.c_str() );
 
-  //commandLine = "rm " + m_variablesBias[0]+ "*";
-  //system( commandLine.c_str() );
+  commandLine = "rm " + path+ m_variablesBias[0]+ "*";
+  system( commandLine.c_str() );
 
-  //  commandLine= "rm *aux && rm *log && rm *tex";
-  // system( commandLine.c_str() );
+ 
   cout<<"Plots drawn and stored into a pdf file"<<endl;
   return;
 }
