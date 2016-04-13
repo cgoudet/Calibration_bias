@@ -21,12 +21,14 @@ public:
   void SelectVariables(std::vector <std::string> dataFiles);
   void MeasureBias(std::string outFileName, std::string outRootFileName);
   void MakePlots(std::string path, std::string latexFileName);
-
+  void MakePlotsFromCsv(std::string inFile);
 
  private:
   std::vector <std::string> m_variablesBias;
   std::vector <unsigned int> m_variablesStats;
   std::vector <std::string> m_histNames;
+  std::vector <double> m_bias;
+  std::vector <double> m_errBias;
 
   std::map <std::string, TH1D*> m_mapHist;
   std::map <std::string, double> m_mapXMin;

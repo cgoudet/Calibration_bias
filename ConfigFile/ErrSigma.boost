@@ -1,0 +1,15 @@
+variablesBias=inputC
+variablesBias=statTree
+variablesBias=indepTemplates
+variablesBias=indepDistorded
+variablesBias=bootstrap
+variablesBias=iConf
+variablesBias=jConf
+
+selectTree= ConfigurationsCTree
+
+variablesStats=0
+
+methodStats=2
+
+checkDistri=1

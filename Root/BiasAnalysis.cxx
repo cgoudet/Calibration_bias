@@ -70,6 +70,8 @@ BiasAnalysis::BiasAnalysis(string configFileName)
   po::store(po::parse_config_file(ifs, configOptions), vm);
   po::notify(vm);  
 
+  cout<<"Configuration file "<<configFileName<<" loaded."<<endl;
+  cout<<m_methodStats<<endl;
   m_nHist=0;
 }
 
@@ -140,6 +142,9 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	  mapDouble=mapBranches.GetMapDouble();
       	  mapUInt=mapBranches.GetMapUnsigned();
 	  histName ="";
+	  
+	  //if (mapUInt.at("nBins")!=6 || mapUInt.at("indepTemplates")==0 || mapUInt.at("bootstrap")==0 || mapUInt.at("indepDistorded")==0) continue;
+	  if (mapUInt.at("nBins")!=6) continue;
 
 	  switch (m_checkDistri)
 	    {
@@ -157,8 +162,6 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	      bias =  mapDouble.at("sigma")-mapDouble.at("inputC");
 	    }
 	
-	  //	  if (mapUInt.at("nBins")!=6 || mapUInt.at("indepTemplates")==0 || mapUInt.at("bootstrap")==0 || mapUInt.at("indepDistorded")==0) continue;
-	  if (mapUInt.at("nBins")!=6) continue;
 
 	  for (unsigned int iVar =0; iVar < m_variablesBias.size(); iVar++)
       	    {
@@ -221,6 +224,8 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	  mapUInt=mapBranches.GetMapUnsigned();
 	  histName ="";
 	  
+	  //if (mapUInt.at("nBins")!=6 || mapUInt.at("indepTemplates")==0 || mapUInt.at("bootstrap")==0 || mapUInt.at("indepDistorded")==0) continue;
+	  if (mapUInt.at("nBins")!=6) continue;
 
 	  switch (m_checkDistri)
 	    {
@@ -238,8 +243,6 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	      bias =  mapDouble.at("sigma")-mapDouble.at("inputC");
 	    }
 
-	  // if (mapUInt.at("nBins")!=6 || mapUInt.at("indepTemplates")==0 || mapUInt.at("bootstrap")==0 || mapUInt.at("indepDistorded")==0) continue;
-	  if (mapUInt.at("nBins")!=6) continue;
 
 	  for (unsigned int iVar =0; iVar < m_variablesBias.size(); iVar++)
 	    {
@@ -318,8 +321,10 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
   double rms=0; 
   double xMin=0.;
   double xMax=0.;
+  double bias;
   string histName;
   char *token;
+  vector <double> mean100k, mean2M, mean1M, errMean100k, errMean2M, errMean1M, errBias1M, errBias100k;
 
   TFile *outRootFile = new TFile(outRootFileName.c_str(), "RECREATE"); 
 
@@ -364,19 +369,18 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
 
 	    case 2://get from gaussian fit
 	      {
-		cout << histName<<endl;
 		nBins = m_mapHist[histName]->GetNbinsX();
 		
 		xMin = m_mapHist[histName]->GetXaxis()->GetBinCenter(2);
 		xMax = m_mapHist[histName]->GetXaxis()->GetBinCenter(nBins-1);
-		cout <<histName<<" " <<xMin << " "<< xMax<<endl;
 		TF1 *f0 = new TF1("f0", "gaus", xMin, xMax);
 		m_mapHist[histName]->Fit("f0","R");
+		//cout <<histName;
 		mean = m_mapHist[histName]->GetFunction("f0")->GetParameter(1);
+		//cout << " "<<mean<<endl;
 		rms = m_mapHist[histName]->GetFunction("f0")->GetParameter(2);
 		if (mean-1.5*rms>=xMin) xMin= mean-1.5*rms;
 		if (mean+1.5*rms<=xMax && mean+1.5*rms>xMin) xMax= mean+1.5*rms;
-		cout <<histName<<" " <<xMin << " "<< xMax<<endl;
 		TF1 *f1= new TF1("f1", "gaus", xMin, xMax);
 		m_mapHist[histName]->Fit("f1","R");
 		
@@ -414,37 +418,69 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
 	  //m_histStats[iHist][3]=m_mapNEff[histName];
   	}//end iVar
 
+      //Filling vectors to compute bias
+      if (histName.find("inputC_7000")!=string::npos && histName.find("indepDistorded_1")!=string::npos && histName.find("indepTemplates_1")!=string::npos && histName.find("bootstrap_1")!=string::npos)
+	{
+	  if (histName.find("statTree_100000_")!=string::npos) {mean100k.push_back(mean); errMean100k.push_back(errMean);}
+	  if (histName.find("statTree_1000000_")!=string::npos) {mean1M.push_back(mean); errMean1M.push_back(errMean);}
+	  if (histName.find("statTree_2774685_")!=string::npos) {mean2M.push_back(mean); errMean2M.push_back(errMean);}
+	}
+
       //writing the cvs file
       if (iHist==0) 
 	{
-	  outputFile<<"Histogram name"<<","<<"Histogram index"<<","<<"Number of entries"<<",";
+	  outputFile<<"HistogramName"<<" "<<"HistogramIndex"<<" "<<"NumberEntries"<<" ";
 	  for (unsigned int iVarBias=0; iVarBias<m_variablesBias.size(); iVarBias++)
 	    {
-	      outputFile<<m_variablesBias[iVarBias]<<",";
+	      outputFile<<m_variablesBias[iVarBias]<<" ";
 	    }
-	  outputFile<<"Mean"<<","<<"RMS"<<","<<"Error mean"<<"\n";
+	  outputFile<<"Mean"<<" "<<"RMS"<<" "<<"ErrorMean"<<"\n";
 	}
 
-      outputFile<<histName<<","<<iHist<<","<<m_mapNEff[histName]<<",";
+      outputFile<<histName<<" "<<iHist<<" "<<m_mapNEff[histName]<<" ";
       token = strtok((char*)histName.c_str(), "_");
       skip=1;
       while(token !=NULL)
       	{
 	  if (skip>m_nHist) break;
-      	  if (skip%2==0) outputFile<<token<<",";
+      	  if (skip%2==0) outputFile<<token<<" ";
 	  skip++;
 	  token=strtok(NULL, "_");
       	}
            
-      outputFile<<mean<<","<<rms<<","<<errMean<<"\n";
-      
+      outputFile<<mean<<" "<<rms<<" "<<errMean<<"\n";
+
       //next histogram
       it++;
     }//end iteration over histograms (while loop)
 
+  //Compute bias
+  TString hist;
+  for (unsigned int i=0; i<mean2M.size(); i++)
+    {
+      hist= TString::Format("histBias%d",i); 
+      
+      // TH1D histBias(hist,"", 100, 0, 1100);
+      // histBias.Fill(100, mean100k[i]-mean2M[i] );
+      // histBias.Fill(1000, mean1M[i]-mean2M[i] );
+      // histBias.SetBinError( histBias.GetXaxis()->FindBin(100), sqrt( pow(errMean100k[i],2)+ pow(errMean2M[i], 2) ) );
+      // histBias.SetBinError( histBias.GetXaxis()->FindBin(1000), sqrt( pow(errMean1M[i],2)+ pow(errMean2M[i], 2) ) );
+      
+      TH1D histBias(hist,"", 2, 0, 1100);
+      histBias.SetBinContent(1, mean100k[i]-mean2M[i]);
+      histBias.SetBinError(1, sqrt( pow(errMean100k[i],2)+ pow(errMean2M[i], 2) )); 
+      histBias.SetBinContent(2, mean1M[i]-mean2M[i]);
+      histBias.SetBinError(2, sqrt( pow(errMean1M[i],2)+ pow(errMean2M[i], 2) )); 
+      histBias.GetXaxis()->SetBinLabel(1, "100");
+      histBias.GetXaxis()->SetBinLabel(2, "1000");
+
+      histBias.Write();
+    }
+
   cout<<"End of measure"<<endl;
   outRootFile->Close();
   delete outRootFile;
+  delete token;
   return;
 }
 
@@ -463,12 +499,10 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
   stream.open( (path+latexFileName).c_str(), fstream::out | fstream::trunc );
   WriteLatexHeader( stream, latexTitle , "Antinea Guerguichon" );
 
-  //Draw plots
+  //Draw plots of bias distribution
   //vector <string> vectHistNames;
   vector <string> vectStatNames;
-  if (m_methodStats == 1) vectStatNames.push_back("Mean hist");
-  if (m_methodStats == 2) vectStatNames.push_back("Mean fit");
-  if (m_methodStats!= 1 && m_methodStats !=2) vectStatNames.push_back("Mean");
+  vectStatNames.push_back("Mean");
   vectStatNames.push_back("RMS");
   vectStatNames.push_back("Error mean");
 
@@ -537,7 +571,7 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
       else  stream  << m_variablesBias[iVar] <<", ";
     }
 
-  if (m_checkDistri ==1) stream << "\\indent Check for errSigma distribution with bootstrap=0, indepTemplates=0, indepDistorded=1 \\newline"<<endl;
+  if (m_checkDistri ==1) stream << "\\indent Check for errSigma distribution\\newline"<<endl;
   WriteLatexMinipage( stream, m_histNames, 2, true );
   stream << "\\end{document}" << endl;
   string commandLine = "pdflatex  -interaction=batchmode " + path+latexFileName;
@@ -549,6 +583,60 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
   system( commandLine.c_str() );
 
  
-  cout<<"Plots drawn and stored into a pdf file"<<endl;
+  cout<<"Plots drawn and stored into "<<latexFileName<<".pdf"<<endl;
   return;
 }
+
+
+
+// //================================================
+// //Draw plots using data from a csv file
+// void BiasAnalysis::MakePlotsFromCsv(string inFile)
+// {
+//   string line, value, firstLine;
+//   vector <double> val1M, val2M, val100k;
+//   unsigned int nbColumns=0;
+//   unsigned int colMean, colErrMean, colStat, colInput, iCol, flagStat, flagInput;
+//   char *token;
+
+//   ifstream inputFile (inFile, ios::in);
+//   cout<< inFile <<endl;
+
+//   if (inputFile == 0) {cout<<"Error while opening inputFile"<<endl; return ;}
+
+//   getline(inputFile, firstLine); 
+
+//   token = strtok((char*)firstLine.c_str(), " ");
+//   while(token !=NULL)
+//     {
+//       if (token=="Mean") colMean=nbColumns ;
+//       if (token=="ErrorMean") colErrMean=nbColumns;
+//       if (token=="statTree") colStat=nbColumns;
+//       if (token=="inputC") colInput=nbColumns;
+//       nbColumns++;
+//       token=strtok(NULL, " ");
+//     }
+  
+//   iCol=0;
+//   while (getline(inputFile, value, " "))
+//     {
+//       if (iCol == nbColumns) iCol=0;
+      
+//       if (iCol==colInput && value=="100000") flagStat=0;
+//       if (iCol==colInput && value=="1000000") flagStat=1;
+//       if (iCol==colInput && value=="2774685") flagStat=2;
+      
+//       if (iCol==colInput && value=="7000") flagInput=1;
+
+//       if (iCol==colMean && 
+
+//       colValues.push_back(value);
+//       iCol++;
+//     }
+
+//   //cout <<"printed"<<endl;
+//   inputFile.close();
+//   delete token;
+// }
+
+

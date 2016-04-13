@@ -1,9 +1,11 @@
 inputType=0 
 legendPos= 0.45 0.9 
 normalize=1 
-latex=Bin 0
+latex=Configuration (5, 0)
 latexOpt= 0.15 0.85 
-xTitle=c^{meas}-c^{input} 
+latex=Input: 0.007
+latexOpt= 0.15 0.8 
+xTitle=c^{meas} error 
 yTitle=Number of events 
 plotDirectory=/sps/atlas/a/aguerguichon/Calibration/Bias/Plots/ 
-extendUp=0.4 
+extendUp=0.4
