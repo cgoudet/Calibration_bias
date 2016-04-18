@@ -114,6 +114,7 @@ BiasAnalysis::~BiasAnalysis()
 void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 {
   map <string, unsigned int> mapUInt;
+  map <string, unsigned long long int> mapULongLong;
   map <string, double> mapDouble, mapMean;
   map <string, RooArgSet*> mapArgSet;
    
@@ -123,7 +124,7 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
   double bias;
 
   string histName, rooName, errSigma;
-  TString value, rooNum;
+  TString value, rooNum, runNumber;
 
   TH1::AddDirectory(kFALSE);
 
@@ -144,6 +145,7 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
       	  inTree->GetEntry(iEntry);
 	  mapDouble=mapBranches.GetMapDouble();
       	  mapUInt=mapBranches.GetMapUnsigned();
+	  mapULongLong=mapBranches.GetMapLongLong();
 	  histName ="";
 	  
 	  //if (mapUInt.at("nBins")!=6 || mapUInt.at("indepTemplates")==0 || mapUInt.at("bootstrap")==0 || mapUInt.at("indepDistorded")==0) continue;
@@ -188,6 +190,7 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 		    }
 		}
 	    }
+
 	  //Bias study or errSigma study  
 	  switch (m_checkDistri)
 	    {
@@ -214,7 +217,7 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	      {
 		if (m_variablesBias[iVar] == "statTree") value = TString::Format("%d", 2774685);	      
 	      }
-      
+	           
 	      if (iVar == m_variablesBias.size()-1) 
 		{
 		  histName+= m_variablesBias[iVar]+"_"+value;
@@ -246,9 +249,8 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 
 	}//end iEntry (1st loop)
 
-  inFile->Close(); //close file and delete tree
-  delete inFile;
-
+      inFile->Close(); //close file and delete tree
+      delete inFile;
 
     }//end iFile
 
@@ -492,8 +494,13 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
       skip=1;
       while(token !=NULL)
       	{
-	  if (skip>m_nHist) break;
-      	  if (skip%2==0) outputFile<<token<<" ";
+	  if (skip>m_nHist+1) break;
+      	  if (skip%2==0) 
+	    {
+	      outputFile<<token<<" ";
+	      //cout<<iHist<<" "<<skip<<" "<<m_nHist <<" "<<token<<endl;
+	      m_varBiasValues.push_back(token);
+	    }
 	  skip++;
 	  token=strtok(NULL, "_");
       	}
@@ -570,18 +577,25 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
 
       for (unsigned int i=0; i<m_variablesStats.size()+2; i++)
       	{
-      	  statVal= TString::Format("%f", m_histStats[iHist][i]);
+      	  statVal= TString::Format("%e", m_histStats[iHist][i]);
 	  legLatex= "latex="+ vectStatNames[i]+ ": " +statVal;
       	  vectOptDraw.push_back(legLatex.c_str());
-	  statPos= TString::Format("%f", 0.85-i*0.05);
-	  legLatex= "latexOpt= 0.7 "+ statPos;
+	  statPos= TString::Format("%f", 0.9-i*0.05);
+	  legLatex= "latexOpt= 0.65 "+ statPos;
 	  vectOptDraw.push_back(legLatex.c_str());
       	}
       
       vectOptDraw.push_back("yTitle=#Events");
-      legLatex= "latex="+histName;
-      vectOptDraw.push_back(legLatex.c_str());
-      vectOptDraw.push_back("latexOpt= 0.1 0.9");
+      
+      for (unsigned int i=0; i<m_variablesBias.size();i++)
+      	{
+      	  legLatex= "latex="+m_variablesBias[i]+": "+m_varBiasValues[i+(iHist*m_variablesBias.size())];
+      	  vectOptDraw.push_back(legLatex.c_str());
+      	  statPos= TString::Format("%f", 0.9-i*0.05);
+      	  legLatex= "latexOpt= 0.15 "+ statPos;
+      	  vectOptDraw.push_back(legLatex.c_str());
+      	}
+
       vectOptDraw.push_back("extendUp= 0.4");
       
       if (m_methodStats == 3)  DrawPlot(m_mapBias[histName], {m_mapDataSet[histName], m_mapGauss[histName]}, path+histName,{vectOptDraw} );
@@ -622,7 +636,7 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
     }
 
   if (m_checkDistri ==1) stream << "\\indent Check for errSigma distribution\\newline"<<endl;
-  WriteLatexMinipage( stream, m_histNames, 2, true );
+  WriteLatexMinipage( stream, m_histNames, 2);
   stream << "\\end{document}" << endl;
   string commandLine = "pdflatex  -interaction=batchmode " + path+latexFileName;
   system( commandLine.c_str() );
@@ -645,6 +659,7 @@ void BiasAnalysis::InvertCijMatrix(unsigned int inversionProcedure=11)
   unsigned int toyNumber;
   int nRows;
 
+  TFile *outFile = new TFile ("/sps/atlas/a/aguerguichon/Calibration/Bias/Inversion/CiMatrices.root");
   map <unsigned int, TMatrixD>::iterator it =m_mapCij.begin();
   while(it !=m_mapCij.end())
     {
@@ -656,6 +671,12 @@ void BiasAnalysis::InvertCijMatrix(unsigned int inversionProcedure=11)
 
       InvertMatrix( m_mapCij[toyNumber], m_mapErrCij[toyNumber], resultMatrix, resultErrMatrix, inversionProcedure);
  
+      // resultMatrix.Write("");
+      // resultErrMatrix.Write("");
+      
       it++;
     }
+
+  outFile->Close();
+  delete outFile;
 }

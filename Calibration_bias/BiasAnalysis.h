@@ -27,6 +27,7 @@ public:
  private:
   std::vector <std::string> m_variablesBias;
   std::vector <unsigned int> m_variablesStats;
+  std::vector <std::string> m_varBiasValues;
   std::vector <std::string> m_histNames;
   std::vector <double> m_bias;
   std::vector <double> m_errBias;
