@@ -3,11 +3,11 @@ import csv
 from ROOT import *
 
 path="/sps/atlas/a/aguerguichon/Calibration/Bias/"
-rootFile= path+"RootFiles/BiasConfFit.root"
+rootFile= path+"RootFiles/BiasConf.root"
 openedFile= TFile.Open(rootFile)
 
 rootFileName="rootFileName="+rootFile+"\n"
-configFile = open("CompareBiasConf.boost", "w")
+configFile = open("CompareBiasConf_hist.boost", "w")
 configFile.write("inputType=0 \n")
  
 configurations=[ "(0, 0)", "(1, 0)", "(1, 1)", "(2, 0)", "(2, 1)", "(2, 2)", "(3, 2)", "(3, 3)", "(4, 3)", "(4, 4)", "(5, 3)", "(5, 4)", "(5, 5)"  ]

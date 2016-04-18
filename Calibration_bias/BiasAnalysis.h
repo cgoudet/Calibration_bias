@@ -6,6 +6,7 @@
 #include <string>
 #include "boost/multi_array.hpp"
 #include "TH1.h"
+#include "TMatrixD.h"
 #include "RooDataSet.h"
 #include "RooGaussian.h"
 
@@ -21,7 +22,7 @@ public:
   void SelectVariables(std::vector <std::string> dataFiles);
   void MeasureBias(std::string outFileName, std::string outRootFileName);
   void MakePlots(std::string path, std::string latexFileName);
-  void MakePlotsFromCsv(std::string inFile);
+  void InvertCijMatrix(unsigned int inversionProcedure);
 
  private:
   std::vector <std::string> m_variablesBias;
@@ -40,7 +41,8 @@ public:
   std::map <std::string, RooRealVar*> m_mapBias;
   std::map <std::string, RooDataSet*> m_mapDataSet;
   std::map <std::string, RooGaussian*> m_mapGauss;
-  
+  std::map <unsigned int, TMatrixD> m_mapCij;
+  std::map <unsigned int, TMatrixD> m_mapErrCij; 
 
   std::string m_inTreeName;
 

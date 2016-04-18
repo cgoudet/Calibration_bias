@@ -49,13 +49,14 @@ int main(int argc, char *argv[])
   string path= "/sps/atlas/a/aguerguichon/Calibration/Bias/";
 
   BA.SelectVariables(dataFiles);
-  BA.MeasureBias(path+"Stats/BiasConfFit.csv", path+"RootFiles/BiasConfFit.root");
+  BA.MeasureBias(path+"Stats/BiasConf.csv", path+"RootFiles/BiasConf.root");
 
   path= "/sps/atlas/a/aguerguichon/Calibration/Bias/Plots/";
   
-  BA.MakePlots(path, "BiasConfFit.tex");
+  BA.MakePlots(path, "BiasConf.tex");
 
-  path= "/sps/atlas/a/aguerguichon/Calibration/Bias/";
+  BA.InvertCijMatrix(11);
+  //path= "/sps/atlas/a/aguerguichon/Calibration/Bias/";
 
   
   //================

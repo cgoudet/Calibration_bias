@@ -2,18 +2,14 @@ inputType=0
 rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/RootFiles/BiasBinFit.root
 objName=histBias0
 legend= Bin 0
-rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/RootFiles/BiasBinFit.root
-objName=histBias1
-legend= Bin 1
+
 rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/RootFiles/BiasBinFit.root
 objName=histBias2
 legend= Bin 2
 rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/RootFiles/BiasBinFit.root
 objName=histBias3
 legend= Bin 3
-rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/RootFiles/BiasBinFit.root
-objName=histBias4
-legend= Bin 4
+
 rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/RootFiles/BiasBinFit.root
 objName=histBias5
 legend= Bin 5
@@ -25,4 +21,4 @@ yTitle=Bias
 plotDirectory=/sps/atlas/a/aguerguichon/Calibration/Bias/Plots/ 
 extendUp=0.2 
 rangeUserX= 0 1100 
-drawStyle=3
+rangeUserY= -0.006 0.007

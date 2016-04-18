@@ -8,6 +8,7 @@
 #include <boost/program_options.hpp>
 #include <boost/multi_array.hpp>
 
+#include "TMatrixD.h"
 #include "TH1.h"
 #include "TF1.h"
 #include "TFile.h"
@@ -26,6 +27,7 @@
 #include "PlotFunctions/SideFunctionsTpp.h"
 #include "PlotFunctions/SideFunctions.h"
 #include "PlotFunctions/MapBranches.h"
+#include "PlotFunctions/InvertMatrix.h"
 
 using namespace std;
 using namespace RooFit;
@@ -105,8 +107,9 @@ BiasAnalysis::~BiasAnalysis()
 
 
 //===================================================
-// Read files, link tree branches to local variables and sorting variables according to the ones selected.
-// Fill the map m_mapHist with unique histogramms for each combination of all possible values of each variable.
+// - Read files, link tree branches to local variables and sorting variables according to the ones selected.
+// - Fill the map m_mapHist with unique histogramms for each combination of all possible values of each variable.
+// - Fill m_mapCij and m_mapErrCij for the inversion procedure
 
 void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 {
@@ -116,7 +119,7 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
    
   TTree *inTree;
   TFile *inFile;
-  unsigned int nEntries;
+  unsigned int nEntries, toyNumber, i, j;
   double bias;
 
   string histName, rooName, errSigma;
@@ -144,8 +147,48 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	  histName ="";
 	  
 	  //if (mapUInt.at("nBins")!=6 || mapUInt.at("indepTemplates")==0 || mapUInt.at("bootstrap")==0 || mapUInt.at("indepDistorded")==0) continue;
+
+	  //Preliminary study for 6 bins
 	  if (mapUInt.at("nBins")!=6) continue;
 
+	  //Fill maps for inversion procedure
+	  if (m_inTreeName=="ConfigurationsCTree")
+	    {
+	      toyNumber= mapUInt.at("toyNumber");
+	      i=mapUInt.at("iConf");
+	      j=mapUInt.at("jConf");
+	      if (m_mapCij.count(toyNumber)==0)
+		{
+		  m_mapCij.insert( pair<unsigned int, TMatrixD>(toyNumber, TMatrixD(mapUInt.at("nBins"), mapUInt.at("nBins"))) );
+		  m_mapErrCij.insert(pair<unsigned int, TMatrixD>(toyNumber, TMatrixD(mapUInt.at("nBins"), mapUInt.at("nBins"))) );
+	   
+		  m_mapCij[toyNumber][i][j]=mapDouble.at("sigma");
+		  m_mapCij[toyNumber][j][i]=mapDouble.at("sigma");
+		  m_mapErrCij[toyNumber][i][j]=mapDouble.at("errSigma");
+		  m_mapErrCij[toyNumber][j][i]=mapDouble.at("errSigma");
+		  
+		}
+	      else
+		{
+		  m_mapCij[toyNumber][i][j]=mapDouble.at("sigma");
+		  m_mapCij[toyNumber][j][i]=mapDouble.at("sigma");
+		  m_mapErrCij[toyNumber][i][j]=mapDouble.at("errSigma");
+		  m_mapErrCij[toyNumber][j][i]=mapDouble.at("errSigma");
+		}
+	      
+	      if ( i==(mapUInt.at("nBins")-1) && j==(mapUInt.at("nBins")-1) )
+		{
+		  for (unsigned int iRow=0; iRow<=i; iRow++)
+		    {
+		      for(unsigned int iCol=0; iCol<=i; iCol++)
+			{
+			  if ( m_mapCij[toyNumber][iCol][iRow]==0 && m_mapErrCij[toyNumber][iCol][iRow]==0 ) m_mapErrCij[toyNumber][iCol][iRow]=100;
+			  // cout <<iEntry<<" "<<toyNumber<<" " <<iRow << " "<<iCol<<" "<<m_mapCij[toyNumber][iCol][iRow]<<" "<<m_mapErrCij[toyNumber][iCol][iRow] <<endl;
+			}
+		    }
+		}
+	    }
+	  //Bias study or errSigma study  
 	  switch (m_checkDistri)
 	    {
 	    case 0:
@@ -162,7 +205,7 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	      bias =  mapDouble.at("sigma")-mapDouble.at("inputC");
 	    }
 	
-
+	  //Combine all possible values of each variable
 	  for (unsigned int iVar =0; iVar < m_variablesBias.size(); iVar++)
       	    {
 	      if (mapUInt.count(m_variablesBias[iVar])>0) value = TString::Format("%d",mapUInt.find(m_variablesBias[iVar])->second);
@@ -202,7 +245,11 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	    }//end iVar (1st loop)
 
 	}//end iEntry (1st loop)
-    
+
+  inFile->Close(); //close file and delete tree
+  delete inFile;
+
+
     }//end iFile
 
   //2nd loop over files: fill m_mapHist     
@@ -295,11 +342,15 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	      
 	    }//end iVar (2nd loop)
 	}//end iEntry (2nd loop)
-    }//end iFile
-
 
   inFile->Close(); //close file and delete tree
   delete inFile;
+
+    }//end iFile
+
+  // inFile->Close(); //close file and delete tree
+  // delete inFile;
+
   return;
 }
 
@@ -321,7 +372,7 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
   double rms=0; 
   double xMin=0.;
   double xMax=0.;
-  double bias;
+  //  double bias;
   string histName;
   char *token;
   vector <double> mean100k, mean2M, mean1M, errMean100k, errMean2M, errMean1M, errBias1M, errBias100k;
@@ -415,7 +466,6 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
 	  m_histStats[iHist][0]=mean;
 	  m_histStats[iHist][1]=rms;
 	  m_histStats[iHist][2]=errMean;
-	  //m_histStats[iHist][3]=m_mapNEff[histName];
   	}//end iVar
 
       //Filling vectors to compute bias
@@ -460,19 +510,19 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
     {
       hist= TString::Format("histBias%d",i); 
       
-      // TH1D histBias(hist,"", 100, 0, 1100);
-      // histBias.Fill(100, mean100k[i]-mean2M[i] );
-      // histBias.Fill(1000, mean1M[i]-mean2M[i] );
-      // histBias.SetBinError( histBias.GetXaxis()->FindBin(100), sqrt( pow(errMean100k[i],2)+ pow(errMean2M[i], 2) ) );
-      // histBias.SetBinError( histBias.GetXaxis()->FindBin(1000), sqrt( pow(errMean1M[i],2)+ pow(errMean2M[i], 2) ) );
+      TH1D histBias(hist,"", 100, 0, 1100);
+      histBias.Fill(100, mean100k[i]-mean2M[i] );
+      histBias.Fill(1000, mean1M[i]-mean2M[i] );
+      histBias.SetBinError( histBias.GetXaxis()->FindBin(100), sqrt( pow(errMean100k[i],2)+ pow(errMean2M[i], 2) ) );
+      histBias.SetBinError( histBias.GetXaxis()->FindBin(1000), sqrt( pow(errMean1M[i],2)+ pow(errMean2M[i], 2) ) );
       
-      TH1D histBias(hist,"", 2, 0, 1100);
-      histBias.SetBinContent(1, mean100k[i]-mean2M[i]);
-      histBias.SetBinError(1, sqrt( pow(errMean100k[i],2)+ pow(errMean2M[i], 2) )); 
-      histBias.SetBinContent(2, mean1M[i]-mean2M[i]);
-      histBias.SetBinError(2, sqrt( pow(errMean1M[i],2)+ pow(errMean2M[i], 2) )); 
-      histBias.GetXaxis()->SetBinLabel(1, "100");
-      histBias.GetXaxis()->SetBinLabel(2, "1000");
+      // TH1D histBias(hist,"", 2, 0, 1100);
+      // histBias.SetBinContent(1, mean100k[i]-mean2M[i]);
+      // histBias.SetBinError(1, sqrt( pow(errMean100k[i],2)+ pow(errMean2M[i], 2) )); 
+      // histBias.SetBinContent(2, mean1M[i]-mean2M[i]);
+      // histBias.SetBinError(2, sqrt( pow(errMean1M[i],2)+ pow(errMean2M[i], 2) )); 
+      // histBias.GetXaxis()->SetBinLabel(1, "100");
+      // histBias.GetXaxis()->SetBinLabel(2, "1000");
 
       histBias.Write();
     }
@@ -480,7 +530,7 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
   cout<<"End of measure"<<endl;
   outRootFile->Close();
   delete outRootFile;
-  delete token;
+  //  delete token;
   return;
 }
 
@@ -589,54 +639,23 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
 
 
 
-// //================================================
-// //Draw plots using data from a csv file
-// void BiasAnalysis::MakePlotsFromCsv(string inFile)
-// {
-//   string line, value, firstLine;
-//   vector <double> val1M, val2M, val100k;
-//   unsigned int nbColumns=0;
-//   unsigned int colMean, colErrMean, colStat, colInput, iCol, flagStat, flagInput;
-//   char *token;
+//============================================
+void BiasAnalysis::InvertCijMatrix(unsigned int inversionProcedure=11)
+{
+  unsigned int toyNumber;
+  int nRows;
 
-//   ifstream inputFile (inFile, ios::in);
-//   cout<< inFile <<endl;
+  map <unsigned int, TMatrixD>::iterator it =m_mapCij.begin();
+  while(it !=m_mapCij.end())
+    {
+      toyNumber= it->first;
+      nRows=m_mapCij[toyNumber].GetNrows();
+            
+      TMatrixD resultMatrix(nRows, 1);
+      TMatrixD resultErrMatrix(nRows, 1);
 
-//   if (inputFile == 0) {cout<<"Error while opening inputFile"<<endl; return ;}
-
-//   getline(inputFile, firstLine); 
-
-//   token = strtok((char*)firstLine.c_str(), " ");
-//   while(token !=NULL)
-//     {
-//       if (token=="Mean") colMean=nbColumns ;
-//       if (token=="ErrorMean") colErrMean=nbColumns;
-//       if (token=="statTree") colStat=nbColumns;
-//       if (token=="inputC") colInput=nbColumns;
-//       nbColumns++;
-//       token=strtok(NULL, " ");
-//     }
-  
-//   iCol=0;
-//   while (getline(inputFile, value, " "))
-//     {
-//       if (iCol == nbColumns) iCol=0;
-      
-//       if (iCol==colInput && value=="100000") flagStat=0;
-//       if (iCol==colInput && value=="1000000") flagStat=1;
-//       if (iCol==colInput && value=="2774685") flagStat=2;
-      
-//       if (iCol==colInput && value=="7000") flagInput=1;
-
-//       if (iCol==colMean && 
-
-//       colValues.push_back(value);
-//       iCol++;
-//     }
-
-//   //cout <<"printed"<<endl;
-//   inputFile.close();
-//   delete token;
-// }
-
-
+      InvertMatrix( m_mapCij[toyNumber], m_mapErrCij[toyNumber], resultMatrix, resultErrMatrix, inversionProcedure);
+ 
+      it++;
+    }
+}
