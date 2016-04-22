@@ -114,7 +114,7 @@ BiasAnalysis::~BiasAnalysis()
 void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 {
   map <string, unsigned int> mapUInt;
-  map <string, unsigned long long int> mapULongLong;
+  map <string, unsigned long long> mapULongLong;
   map <string, double> mapDouble, mapMean;
   map <string, RooArgSet*> mapArgSet;
    
@@ -147,49 +147,46 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
       	  mapUInt=mapBranches.GetMapUnsigned();
 	  mapULongLong=mapBranches.GetMapLongLong();
 	  histName ="";
-	  
-	  //if (mapUInt.at("nBins")!=6 || mapUInt.at("indepTemplates")==0 || mapUInt.at("bootstrap")==0 || mapUInt.at("indepDistorded")==0) continue;
 
 	  //Preliminary study for 6 bins
 	  if (mapUInt.at("nBins")!=6) continue;
 
 	  //Fill maps for inversion procedure
-	  if (m_inTreeName=="ConfigurationsCTree")
-	    {
-	      toyNumber= mapUInt.at("toyNumber");
-	      i=mapUInt.at("iConf");
-	      j=mapUInt.at("jConf");
-	      if (m_mapCij.count(toyNumber)==0)
-		{
-		  m_mapCij.insert( pair<unsigned int, TMatrixD>(toyNumber, TMatrixD(mapUInt.at("nBins"), mapUInt.at("nBins"))) );
-		  m_mapErrCij.insert(pair<unsigned int, TMatrixD>(toyNumber, TMatrixD(mapUInt.at("nBins"), mapUInt.at("nBins"))) );
+	  // if (m_inTreeName=="ConfigurationsCTree")
+	  //   {
+	  //     toyNumber= mapUInt.at("toyNumber");
+	  //     i=mapUInt.at("iConf");
+	  //     j=mapUInt.at("jConf");
+	  //     if (m_mapCij.count(toyNumber)==0)
+	  // 	{
+	  // 	  m_mapCij.insert( pair<unsigned int, TMatrixD>(toyNumber, TMatrixD(mapUInt.at("nBins"), mapUInt.at("nBins"))) );
+	  // 	  m_mapErrCij.insert(pair<unsigned int, TMatrixD>(toyNumber, TMatrixD(mapUInt.at("nBins"), mapUInt.at("nBins"))) );
 	   
-		  m_mapCij[toyNumber][i][j]=mapDouble.at("sigma");
-		  m_mapCij[toyNumber][j][i]=mapDouble.at("sigma");
-		  m_mapErrCij[toyNumber][i][j]=mapDouble.at("errSigma");
-		  m_mapErrCij[toyNumber][j][i]=mapDouble.at("errSigma");
+	  // 	  m_mapCij[toyNumber][i][j]=mapDouble.at("sigma");
+	  // 	  m_mapCij[toyNumber][j][i]=mapDouble.at("sigma");
+	  // 	  m_mapErrCij[toyNumber][i][j]=mapDouble.at("errSigma");
+	  // 	  m_mapErrCij[toyNumber][j][i]=mapDouble.at("errSigma");
 		  
-		}
-	      else
-		{
-		  m_mapCij[toyNumber][i][j]=mapDouble.at("sigma");
-		  m_mapCij[toyNumber][j][i]=mapDouble.at("sigma");
-		  m_mapErrCij[toyNumber][i][j]=mapDouble.at("errSigma");
-		  m_mapErrCij[toyNumber][j][i]=mapDouble.at("errSigma");
-		}
+	  // 	}
+	  //     else
+	  // 	{
+	  // 	  m_mapCij[toyNumber][i][j]=mapDouble.at("sigma");
+	  // 	  m_mapCij[toyNumber][j][i]=mapDouble.at("sigma");
+	  // 	  m_mapErrCij[toyNumber][i][j]=mapDouble.at("errSigma");
+	  // 	  m_mapErrCij[toyNumber][j][i]=mapDouble.at("errSigma");
+	  // 	}
 	      
-	      if ( i==(mapUInt.at("nBins")-1) && j==(mapUInt.at("nBins")-1) )
-		{
-		  for (unsigned int iRow=0; iRow<=i; iRow++)
-		    {
-		      for(unsigned int iCol=0; iCol<=i; iCol++)
-			{
-			  if ( m_mapCij[toyNumber][iCol][iRow]==0 && m_mapErrCij[toyNumber][iCol][iRow]==0 ) m_mapErrCij[toyNumber][iCol][iRow]=100;
-			  // cout <<iEntry<<" "<<toyNumber<<" " <<iRow << " "<<iCol<<" "<<m_mapCij[toyNumber][iCol][iRow]<<" "<<m_mapErrCij[toyNumber][iCol][iRow] <<endl;
-			}
-		    }
-		}
-	    }
+	  //     if ( i==(mapUInt.at("nBins")-1) && j==(mapUInt.at("nBins")-1) )
+	  // 	{
+	  // 	  for (unsigned int iRow=0; iRow<=i; iRow++)
+	  // 	    {
+	  // 	      for(unsigned int iCol=0; iCol<=i; iCol++)
+	  // 		{
+	  // 		  if ( m_mapCij[toyNumber][iCol][iRow]==0 && m_mapErrCij[toyNumber][iCol][iRow]==0 ) m_mapErrCij[toyNumber][iCol][iRow]=100;
+	  // 		}
+	  // 	    }
+	  // 	}
+	  //   }
 
 	  //Bias study or errSigma study  
 	  switch (m_checkDistri)
@@ -207,7 +204,9 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	    default:
 	      bias =  mapDouble.at("sigma")-mapDouble.at("inputC");
 	    }
-	
+	  
+	  //cout << iEntry<< " "<<bias<<endl;
+	  
 	  //Combine all possible values of each variable
 	  for (unsigned int iVar =0; iVar < m_variablesBias.size(); iVar++)
       	    {
@@ -273,7 +272,6 @@ void BiasAnalysis::SelectVariables(vector <string> dataFiles)
 	  mapUInt=mapBranches.GetMapUnsigned();
 	  histName ="";
 	  
-	  //if (mapUInt.at("nBins")!=6 || mapUInt.at("indepTemplates")==0 || mapUInt.at("bootstrap")==0 || mapUInt.at("indepDistorded")==0) continue;
 	  if (mapUInt.at("nBins")!=6) continue;
 
 	  switch (m_checkDistri)
@@ -478,7 +476,7 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
 	  if (histName.find("statTree_2774685_")!=string::npos) {mean2M.push_back(mean); errMean2M.push_back(errMean);}
 	}
 
-      //writing the cvs file
+      //writing the csv file
       if (iHist==0) 
 	{
 	  outputFile<<"HistogramName"<<" "<<"HistogramIndex"<<" "<<"NumberEntries"<<" ";
@@ -494,11 +492,10 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
       skip=1;
       while(token !=NULL)
       	{
-	  if (skip>m_nHist+1) break;
+	  if (skip>m_variablesBias.size()*2) break;
       	  if (skip%2==0) 
 	    {
 	      outputFile<<token<<" ";
-	      //cout<<iHist<<" "<<skip<<" "<<m_nHist <<" "<<token<<endl;
 	      m_varBiasValues.push_back(token);
 	    }
 	  skip++;
@@ -548,12 +545,13 @@ void BiasAnalysis::MeasureBias(string outFileName, string outRootFileName)
 //==================================================
 //Draw plots and save them into a pdf file
 
-void BiasAnalysis::MakePlots(string path, string latexFileName)
+void BiasAnalysis::MakePlots(string path, string latexFileName, string comment)
 {
   //Prepare latex file to store plots 
   fstream stream;
   string latexTitle = "Bias study";
-  stream.open( (path+latexFileName).c_str(), fstream::out | fstream::trunc );
+  latexFileName+=".tex";
+  stream.open( latexFileName.c_str(), fstream::out | fstream::trunc );
   WriteLatexHeader( stream, latexTitle , "Antinea Guerguichon" );
 
   //Draw plots of bias distribution
@@ -574,6 +572,8 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
     {
       histName = m_histNames[i];
       m_histNames[i]=path+m_histNames[i];
+      //cout<< m_mapHist[histName]->GetName() << " "<<m_mapHist[histName]->GetEntries()<<endl;
+
 
       for (unsigned int i=0; i<m_variablesStats.size()+2; i++)
       	{
@@ -595,7 +595,7 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
       	  legLatex= "latexOpt= 0.15 "+ statPos;
       	  vectOptDraw.push_back(legLatex.c_str());
       	}
-
+      
       vectOptDraw.push_back("extendUp= 0.4");
       
       if (m_methodStats == 3)  DrawPlot(m_mapBias[histName], {m_mapDataSet[histName], m_mapGauss[histName]}, path+histName,{vectOptDraw} );
@@ -617,7 +617,7 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
 	}
 
 
-      
+      cout<<m_mapHist[histName]->GetName()<<" "<<histName<<endl;
       if (m_methodStats!=3) DrawPlot({m_mapHist[histName]}, path+histName, {vectOptDraw});       
       vectOptDraw.clear();
       
@@ -627,7 +627,8 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
   //  Store plots into the file
   //stream << "\\section{Method to get stats: "<<m_methodStats<<"}"<< endl;
   
-  stream << "Tree: "<< m_inTreeName<<"\\newline  "<<endl;
+  stream <<comment <<"\\newline"<<endl;
+  stream << "\\indent Tree: "<< m_inTreeName<<"\\newline  "<<endl;
   stream << "\\indent Variables: ";
   for (unsigned int iVar=0; iVar< m_variablesBias.size(); iVar++)
     {
@@ -638,16 +639,17 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
   if (m_checkDistri ==1) stream << "\\indent Check for errSigma distribution\\newline"<<endl;
   WriteLatexMinipage( stream, m_histNames, 2);
   stream << "\\end{document}" << endl;
-  string commandLine = "pdflatex  -interaction=batchmode " + path+latexFileName;
+  string commandLine = "pdflatex  -interaction=batchmode " + latexFileName;
   system( commandLine.c_str() );
   system( commandLine.c_str() );
   system( commandLine.c_str() );
 
-  commandLine = "rm " + path+ m_variablesBias[0]+ "*";
-  system( commandLine.c_str() );
+  // commandLine = "rm " + path+ m_variablesBias[0]+ "*";
+  // system( commandLine.c_str() );
 
  
-  cout<<"Plots drawn and stored into "<<latexFileName<<".pdf"<<endl;
+  cout<<"Plots drawn and stored into "<<path+latexFileName<<endl;
+
   return;
 }
 
@@ -656,27 +658,35 @@ void BiasAnalysis::MakePlots(string path, string latexFileName)
 //============================================
 void BiasAnalysis::InvertCijMatrix(unsigned int inversionProcedure=11)
 {
-  unsigned int toyNumber;
-  int nRows;
-
-  TFile *outFile = new TFile ("/sps/atlas/a/aguerguichon/Calibration/Bias/Inversion/CiMatrices.root");
-  map <unsigned int, TMatrixD>::iterator it =m_mapCij.begin();
-  while(it !=m_mapCij.end())
+  if (m_inTreeName=="ConfigurationsCTree")
     {
-      toyNumber= it->first;
-      nRows=m_mapCij[toyNumber].GetNrows();
-            
-      TMatrixD resultMatrix(nRows, 1);
-      TMatrixD resultErrMatrix(nRows, 1);
+      unsigned int toyNumber;
+      int nRows;
 
-      InvertMatrix( m_mapCij[toyNumber], m_mapErrCij[toyNumber], resultMatrix, resultErrMatrix, inversionProcedure);
+      TFile *outFile = new TFile ("/sps/atlas/a/aguerguichon/Calibration/Bias/Inversion/CiMatrices.root");
+      if (outFile == 0) { cout<<"Error: cannot open sps/atlas/a/aguerguichon/Calibration/Bias/Inversion/CiMatrices.root file\n"<<endl; return;}
+
+      map <unsigned int, TMatrixD>::iterator it =m_mapCij.begin();
+      while(it !=m_mapCij.end())
+	{
+	  toyNumber= it->first;
+	  nRows=m_mapCij[toyNumber].GetNrows();
+            
+	  TMatrixD resultMatrix(nRows, 1);
+	  TMatrixD resultErrMatrix(nRows, 1);
+
+	  InvertMatrix( m_mapCij[toyNumber], m_mapErrCij[toyNumber], resultMatrix, resultErrMatrix, inversionProcedure);
  
-      // resultMatrix.Write("");
-      // resultErrMatrix.Write("");
+	  // resultMatrix.Write("");
+	  // resultErrMatrix.Write("");
       
-      it++;
+	  it++;
+	}
+
+      outFile->Close();
+      delete outFile;
     }
 
-  outFile->Close();
-  delete outFile;
+  else cout<<"Option selectTree different from ConfigurationsCTree. Inversion procedure not performed."<<endl;
+
 }

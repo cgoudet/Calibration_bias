@@ -47,16 +47,23 @@ int main(int argc, char *argv[])
   BiasAnalysis BA("Calibration_bias/ConfigFile/BiasConf.boost");
 
   string path= "/sps/atlas/a/aguerguichon/Calibration/Bias/";
-
+  string latexFileName= "BiasConf_CheckRepro_26455434";
+  
   BA.SelectVariables(dataFiles);
-  BA.MeasureBias(path+"Stats/BiasConf.csv", path+"RootFiles/BiasConf.root");
+  BA.MeasureBias(path+"Stats/BiasConf_CheckRepro.csv", path+"RootFiles/BiasConf_CheckRepro.root");
 
   path= "/sps/atlas/a/aguerguichon/Calibration/Bias/Plots/";
   
-  BA.MakePlots(path, "BiasConf.tex");
+  BA.MakePlots(path, latexFileName, "Check for reproducibility: set2, TreeToyTemplates 26455434");
 
-  BA.InvertCijMatrix(11);
-  //path= "/sps/atlas/a/aguerguichon/Calibration/Bias/";
+  string commandLine = "mv ./"+latexFileName+".pdf "+path;
+  system ( commandLine.c_str() );
+  commandLine = "rm "+latexFileName+"*";
+  system ( commandLine.c_str() );
+  
+
+  //  BA.InvertCijMatrix(11);
+
 
   
   //================

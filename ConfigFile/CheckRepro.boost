@@ -1,0 +1,15 @@
+inputType=1
+rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/Toys/Results/Tests/CheckRepro/TreeToyTemplates_26455482.root
+objName=ConfigurationsCTree
+varName=sigma
+legend= Tree26455482
+
+rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/Toys/Results/Tests/CheckRepro/TreeToyTemplates_26455434.root
+objName=ConfigurationsCTree
+varName=sigma
+legend=Tree26455434
+
+varMin=0
+varMax=0.1
+rangeUserY=0 10
+plotDirectory=/sps/atlas/a/aguerguichon/Calibration/Bias/Plots/

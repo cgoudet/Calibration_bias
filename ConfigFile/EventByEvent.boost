@@ -1,0 +1,18 @@
+inputType=2
+doTabular=2
+rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/Toys/Results/Tests/CheckRepro/TreeToyTemplates_26440190.root
+legend=runNumber 26440190
+
+rootFileName=/sps/atlas/a/aguerguichon/Calibration/Bias/Toys/Results/Tests/CheckRepro/TreeToyTemplates_26439868.root
+legend= runNumber 26439868
+
+objName=ConfigurationsCTree
+objName=ConfigurationsCTree
+selectionCut= iConf==0 && jConf==0
+selectionCut= iConf==0 && jConf==0
+eventID= toyNumber
+varName= sigma
+varMin= 0 0
+varMax= 1 1
+nComparedEvents=100000
+

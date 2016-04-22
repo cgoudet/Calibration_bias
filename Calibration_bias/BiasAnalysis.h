@@ -21,7 +21,7 @@ public:
   ~BiasAnalysis();
   void SelectVariables(std::vector <std::string> dataFiles);
   void MeasureBias(std::string outFileName, std::string outRootFileName);
-  void MakePlots(std::string path, std::string latexFileName);
+  void MakePlots(std::string path, std::string latexFileName, std::string comment=" ");
   void InvertCijMatrix(unsigned int inversionProcedure);
 
  private:
